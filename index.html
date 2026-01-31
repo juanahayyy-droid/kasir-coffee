@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Kasir Coffee</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #6f4e37, #c19a6b);
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    max-width: 400px;
+    margin: auto;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+h2 {
+    text-align: center;
+    color: #6f4e37;
+}
+
+label {
+    font-weight: bold;
+    display: block;
+    margin-top: 15px;
+}
+
+select, input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    margin-top: 5px;
+}
+
+.total {
+    margin-top: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #6f4e37;
+    text-align: center;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.hitung {
+    background: #6f4e37;
+    color: white;
+}
+
+.cetak {
+    background: #1e90ff;
+    color: white;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h2>☕ Kasir Coffee</h2>
+
+    <label>Pilih Coffee</label>
+    <select id="coffee">
+        <option value="15000">Espresso - Rp15.000</option>
+        <option value="18000">Americano - Rp18.000</option>
+        <option value="20000">Cappuccino - Rp20.000</option>
+        <option value="22000">Latte - Rp22.000</option>
+    </select>
+
+    <label>Jumlah</label>
+    <input type="number" id="qty" value="1" min="1">
+
+    <div class="total" id="total">Total: Rp 0</div>
+
+    <button class="hitung" onclick="hitung()">🧮 Hitung Total</button>
+    <button class="cetak" onclick="cetak()">🖨️ Cetak Struk</button>
+</div>
+
+<script>
+let totalHarga = 0;
+
+function hitung() {
+    let harga = document.getElementById("coffee").value;
+    let qty = document.getElementById("qty").value;
+    totalHarga = harga * qty;
+    document.getElementById("total").innerHTML = "Total: Rp " + totalHarga.toLocaleString();
+}
+
+async function cetak() {
+    if (totalHarga === 0) {
+        alert("Hitung total dulu!");
+        return;
+    }
+
+    try {
+        const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [0xFFE0]
+        });
+
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(0xFFE0);
+        const characteristic = await service.getCharacteristic(0xFFE1);
+
+        let coffeeText = document.getElementById("coffee").options[
+            document.getElementById("coffee").selectedIndex
+        ].text;
+
+        let qty = document.getElementById("qty").value;
+
+        let struk =
+`COFFEE SHOP
+----------------
+${coffeeText}
+Qty   : ${qty}
+Total : Rp ${totalHarga.toLocaleString()}
+----------------
+Terima Kasih
+\n\n\n`;
+
+        let encoder = new TextEncoder();
+        await characteristic.writeValue(encoder.encode(struk));
+
+        alert("Struk berhasil dicetak");
+    } catch (error) {
+        alert("Gagal cetak: " + error);
+    }
+}
+</script>
+</body>
+</html>
